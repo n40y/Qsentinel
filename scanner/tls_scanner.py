@@ -1,10 +1,14 @@
+# scanner/tls_scanner.py
+
 from sslyze.scanner.scanner import Scanner
 from sslyze.scanner.models import ServerScanRequest
 from sslyze.plugins.scan_commands import ScanCommand
 from sslyze.server_setting import ServerNetworkLocation, ServerNetworkConfiguration
 from sslyze.errors import ServerHostnameCouldNotBeResolved
+from sslyze.errors import ConnectionToServerTimedOut
 from .vuln_db import QUANTUM_VULNERABLE
 
+# Ajout du module sslyze timeout, reste à l'implémenter dans le code.
 
 
 # Scan la configuration TLS d'un serveur et retourne un dict avec les algorithmes détectés et leur vulnérabilitée quantique.
