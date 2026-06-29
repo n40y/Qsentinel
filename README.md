@@ -15,14 +15,3 @@ L'outil analyse les flux réels pour cartographier le niveau de risque et estime
 * **Rapports Clairs :** Génération automatique d'un rapport HTML synthétique pour visualiser immédiatement les points de rupture.
 
 ## 🛠️ Architecture du Projet
-
-```text
-Qsentinel/
-├── algo.py             # Estimation des temps de calcul classiques
-├── quantum.py          # Logique d'estimation des temps quantiques (Shor/Grover)
-├── grover.py           # Implémentation des circuits et oracles de Grover (Qiskit)
-├── bsgs.py             # Algorithme Baby-step Giant-step (Logarithme discret classique)
-├── tls_scanner.py      # Moteur d'audit TLS (SSLyze)
-├── crypto.py           # Logique de recommandation des protocoles PQC
-├── main.py             # Orchestrateur du pipeline d'audit en ligne de commande
-└── vuln_db.py          # Base de connaissances des vulnérabilités quantiques
