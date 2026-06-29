@@ -1,3 +1,5 @@
+# scanner/__init__.py
+
 from .tls_scanner import scan_tls
 from .ssh_scanner import scan_ssh
 
