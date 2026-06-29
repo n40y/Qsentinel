@@ -55,9 +55,11 @@ def print_warning(message: str) -> None:
     """Affiche un avertissement en orange."""
     console.print(f"[{COLORS['warning']}]{EMOJIS['warning']} {message}[/{COLORS['warning']}]")
 
+
 # --- Fonctions de formatage des résultats ---
+
+# Affiche les résultats du scan TLS dans un tableau.
 def format_tls_results(tls: Dict[str, Any]) -> None:
-    """Affiche les résultats du scan TLS dans un tableau."""
     if not tls:
         print_error("Aucun résultat TLS disponible.")
         return
@@ -195,8 +197,9 @@ def format_ssh_results(ssh: Dict[str, Any]) -> None:
 
     console.print(table)
 
+
+# Affiche les temps de cassage classique dans un tableau.
 def format_classical_time(classical: Dict[str, Any]) -> None:
-    """Affiche les temps de cassage classique dans un tableau."""
     if not classical:
         print_error("Aucune estimation classique disponible.")
         return
@@ -234,8 +237,9 @@ def format_classical_time(classical: Dict[str, Any]) -> None:
 
     console.print(table)
 
+
+# Affiche les temps de cassage quantique dans un tableau.
 def format_quantum_time(quantum: Dict[str, Any]) -> None:
-    """Affiche les temps de cassage quantique dans un tableau."""
     if not quantum:
         print_error("Aucune estimation quantique disponible.")
         return
@@ -252,11 +256,11 @@ def format_quantum_time(quantum: Dict[str, Any]) -> None:
     table.add_column("Temps estimé", justify="center", width=20)
 
     grover_impact = quantum.get("grover_impact", {})
-    if grover_impact:
+    if isinstance(grover_impact, dict) and grover_impact:
         for key, value in grover_impact.items():
             status = (
                 f"[{COLORS['danger']}]{EMOJIS['danger']}[/{COLORS['danger']}]"
-                if "cassable" in value
+                if "cassable" in str(value)
                 else f"[{COLORS['safe']}]{EMOJIS['safe']}[/{COLORS['safe']}]"
             )
             table.add_row("Grover", f"{key}: {value}", status)
@@ -264,7 +268,7 @@ def format_quantum_time(quantum: Dict[str, Any]) -> None:
         table.add_row("Grover", "Aucun impact détecté", "[white]N/A[/white]")
 
     shor_estimate = quantum.get("shor_estimate", {})
-    if shor_estimate:
+    if isinstance(shor_estimate, dict) and shor_estimate:
         table.add_row(
             "Shor",
             f"{shor_estimate.get('algo', 'Inconnu')} {shor_estimate.get('key_size', 0)} bits",
@@ -275,8 +279,9 @@ def format_quantum_time(quantum: Dict[str, Any]) -> None:
 
     console.print(table)
 
+
+# Affiche les recommandations dans un tableau.
 def format_recommendations(recommendations: Dict[str, Any]) -> None:
-    """Affiche les recommandations dans un tableau."""
     if not recommendations:
         print_warning("Aucune recommandation disponible.")
         return
@@ -304,8 +309,9 @@ def format_recommendations(recommendations: Dict[str, Any]) -> None:
 
     console.print(table)
 
+
+# Affiche le score de robustesse avec une barre de couleur.
 def format_score(score: int) -> None:
-    """Affiche le score de robustesse avec une barre de couleur."""
     if score >= 80:
         color = COLORS["safe"]
         emoji = EMOJIS["safe"]
@@ -330,8 +336,9 @@ def format_score(score: int) -> None:
         )
     )
 
+
+# Affiche les résultats des benchmarks dans un tableau.
 def format_benchmark_results(benchmarks: Dict[str, Any]) -> None:
-    """Affiche les résultats des benchmarks dans un tableau."""
     if not benchmarks:
         print_warning("Aucun benchmark disponible.")
         return
@@ -379,11 +386,9 @@ def format_benchmark_results(benchmarks: Dict[str, Any]) -> None:
 
     console.print(table)
 
+
+# Affiche une comparaison complète (tableau + graphique ASCII) entre les temps de cassage classique et quantique.
 def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> None:
-    """
-    Affiche une comparaison complète (tableau + graphique ASCII)
-    entre les temps de cassage classique et quantique.
-    """
     if not classical or not quantum:
         print_warning("Impossible de comparer : données manquantes.")
         return
@@ -429,8 +434,9 @@ def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> Non
     classical_time_str = classical.get("classique", {}).get("temps_classique", "0 secondes")
     quantum_time_str = quantum.get("shor_estimate", {}).get("time_readable", "0 secondes")
 
+
+    # Convertit une chaîne de temps en secondes (version robuste).
     def time_to_seconds(time_str: str) -> float:
-        """Convertit une chaîne de temps en secondes (version robuste)."""
         if not time_str or time_str == "N/A":
             return 1.0
         time_str = time_str.lower().strip()
@@ -480,8 +486,9 @@ def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> Non
         speedup = classical_sec / quantum_sec
         console.print(f"[bold]Accélération:[/bold] [cyan]{speedup:.0f}x plus rapide[/cyan]")
 
+
+# Affiche un graphique ASCII des résultats des benchmarks.
 def plot_benchmark_results(benchmarks: Dict[str, Any]) -> None:
-    """Affiche un graphique ASCII des résultats des benchmarks."""
     if not benchmarks:
         print_warning("Aucun benchmark disponible pour le graphique.")
         return
@@ -489,10 +496,12 @@ def plot_benchmark_results(benchmarks: Dict[str, Any]) -> None:
     labels = []
     times = []
     for name, data in benchmarks.items():
+        if not isinstance(data, dict):
+            continue
         time_sec = data.get("time_seconds", 0)
-        if time_sec > 0:
+        if isinstance(time_sec, (int, float)) and time_sec > 0:
             labels.append(name.upper())
-            times.append(np.log10(time_sec) if time_sec > 0 else 0)
+            times.append(np.log10(time_sec))
 
     if not times:
         print_warning("Aucun temps valide pour le graphique.")
@@ -509,8 +518,9 @@ def plot_benchmark_results(benchmarks: Dict[str, Any]) -> None:
     console.print("\n[bold]📊 Graphique des benchmarks[/bold]")
     console.print(plot(data, config))
 
+
+# Affiche un résumé complet des résultats.
 def print_summary(results: Dict[str, Any]) -> None:
-    """Affiche un résumé complet des résultats."""
     console.print("\n" + "=" * 80)
     print_title("🔍 Rapport Qsentinel - Résumé")
     console.print("=" * 80 + "\n")
