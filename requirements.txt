@@ -5,3 +5,5 @@ cryptography
 liboqs-python
 rich
 jinja2
+paramiko
+asciichartpy
