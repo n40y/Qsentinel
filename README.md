@@ -15,3 +15,45 @@ L'outil analyse les flux réels pour cartographier le niveau de risque et estime
 * **Rapports Clairs :** Génération automatique d'un rapport HTML synthétique pour visualiser immédiatement les points de rupture.
 
 ## 🛠️ Architecture du Projet
+
+Qsentinel/
+├── algo/
+│   ├── __init__.py
+│   ├── benchmark.py
+│   ├── bsgs.py
+│   ├── rsa_naive.py
+│   └── complexity.py
+├── cli/
+│   ├── __init__.py
+│   ├── formatter.py   # + graphiques ASCII
+│   └── progress.py
+├── crypto/
+│   ├── __init__.py
+│   ├── comparator.py
+│   ├── kyber_demo.py
+│   └── dilithium.py
+├── quantum/
+│   ├── __init__.py
+│   ├── shor.py
+│   ├── grover.py
+│   ├── qpe.py        # NOUVEAU
+│   ├── simulator.py
+│   └── ibm_runner.py
+├── scanner/
+│   ├── __init__.py
+│   ├── tls_scanner.py
+│   ├── ssh_scanner.py # NOUVEAU
+│   └── vuln_db.py     # Mis à jour
+├── report/
+│   ├── __init__.py
+│   ├── html_report.py
+│   ├── scorer.py
+│   └── templates/
+│       └── report_template.html
+├── tests/
+│   ├── __init__.py
+│   ├── test_bsgs.py
+│   ├── test_grover.py
+├── main.py
+├── requirements.txt
+└── README.md
