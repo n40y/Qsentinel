@@ -390,3 +390,115 @@ def print_summary(results: Dict[str, Any]) -> None:
         format_score(score)
 
     console.print("\n" + "=" * 80 + "\n")
+    
+    
+    
+################################
+
+from asciichartpy import plot
+import numpy as np
+
+
+def plot_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> None:
+    """
+    Affiche un graphique ASCII comparant les temps classique et quantique.
+    Utilise une échelle logarithmique pour les temps.
+    """
+    if not classical or not quantum:
+        print_warning("Impossible de tracer le graphique : données manquantes.")
+        return
+
+    # Extraire les données
+    classical_algo = classical.get("classique", {}).get("algo", "Inconnu")
+    classical_time_str = classical.get("classique", {}).get("temps_classique", "0 secondes")
+    quantum_time_str = quantum.get("shor_estimate", {}).get("time_readable", "0 secondes")
+
+    # Convertir les temps en secondes (approximation)
+    def time_to_seconds(time_str: str) -> float:
+        """Convertit une chaîne de temps en secondes."""
+        if "secondes" in time_str:
+            return float(time_str.split()[0])
+        elif "minutes" in time_str:
+            return float(time_str.split()[0]) * 60
+        elif "heures" in time_str:
+            return float(time_str.split()[0]) * 3600
+        elif "jours" in time_str:
+            return float(time_str.split()[0]) * 86400
+        elif "ans" in time_str:
+            return float(time_str.split()[0]) * 3.15e7
+        elif "milliards d'années" in time_str:
+            return float(time_str.split()[0]) * 3.15e16
+        else:
+            return 1.0  # Valeur par défaut
+
+    classical_sec = time_to_seconds(classical_time_str)
+    quantum_sec = time_to_seconds(quantum_time_str)
+
+    # Échelle logarithmique (base 10)
+    log_classical = np.log10(classical_sec) if classical_sec > 0 else 0
+    log_quantum = np.log10(quantum_sec) if quantum_sec > 0 else 0
+
+    # Préparer les données pour asciichartpy
+    data = {
+        "Classique": [log_classical],
+        "Quantique": [log_quantum],
+    }
+
+    # Configurer le graphique
+    config = {
+        "height": 10,
+        "colors": [("red", "green")],  # Classique = rouge, Quantique = vert
+        "axis": True,
+        "title": f"Comparaison {classical_algo} (échelle log10)",
+    }
+
+    # Afficher le graphique
+    console.print("\n[bold]📈 Graphique de comparaison (échelle logarithmique)[/bold]")
+    console.print(plot(data, config))
+
+    # Légende
+    console.print(
+        f"[red]Classique:[/red] {classical_time_str} "
+        f"| [green]Quantique:[/green] {quantum_time_str}"
+    )
+
+    # Calculer l'accélération
+    if classical_sec > 0 and quantum_sec > 0:
+        speedup = classical_sec / quantum_sec
+        console.print(
+            f"[bold]Accélération:[/bold] [cyan]{speedup:.0f}x plus rapide[/cyan]"
+        )
+
+def plot_benchmark_results(benchmarks: Dict[str, Any]) -> None:
+    """
+    Affiche un graphique ASCII des résultats des benchmarks.
+    """
+    if not benchmarks:
+        print_warning("Aucun benchmark disponible pour le graphique.")
+        return
+
+    # Extraire les temps (en secondes)
+    labels = []
+    times = []
+    for name, data in benchmarks.items():
+        time_sec = data.get("time_seconds", 0)
+        if time_sec > 0:
+            labels.append(name.upper())
+            times.append(np.log10(time_sec) if time_sec > 0 else 0)
+
+    if not times:
+        print_warning("Aucun temps valide pour le graphique.")
+        return
+
+    # Préparer les données pour asciichartpy
+    data = [times]
+    config = {
+        "height": 10,
+        "colors": [("cyan",)],
+        "axis": True,
+        "title": "Temps d'exécution des benchmarks (échelle log10)",
+        "labels": labels,
+    }
+
+    console.print("\n[bold]📊 Graphique des benchmarks[/bold]")
+    console.print(plot(data, config))
