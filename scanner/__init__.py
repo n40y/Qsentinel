@@ -18,7 +18,7 @@ def scan_target(host: str, port: int = 443, verbose: bool = False) -> dict:
     if port in (443, 8443):
         results["tls"] = scan_tls(host, port, verbose)
     
-    if port == 2:
+    if port == 22:
         results["ssh"] = scan_ssh(host,verbose)
     
     return results
