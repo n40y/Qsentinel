@@ -6,7 +6,8 @@ from os import path
 
 def generate_report(results: dict, output: str) -> None:
 
-    env = Environment(loader=FileSystemLoader(path.dirname(__file__)))
+    templates_dir = path.join(path.dirname(__file__), "templates")
+    env = Environment(loader=FileSystemLoader(templates_dir))
     template = env.get_template("report_template.html")
 
     tls = results.get("tls", {})
