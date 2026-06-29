@@ -30,5 +30,5 @@ def generate_report(results: dict, output: str) -> None:
         score=score,
     )
 
-    with open(output, "w") as f:
+    with open(output, "w", encoding="utf-8") as f:
         f.write(html)
