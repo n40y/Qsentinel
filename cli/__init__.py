@@ -1,4 +1,5 @@
 # cli/__init__.py
+
 from .formatter import (
     print_title,
     print_section,
@@ -6,7 +7,7 @@ from .formatter import (
     print_success,
     print_warning,
     format_tls_results,
-    format_ssh_results,  # <-- Ajout
+    format_ssh_results,
     format_classical_time,
     format_quantum_time,
     format_recommendations,
@@ -17,3 +18,6 @@ from .formatter import (
     plot_benchmark_results,
 )
 from .progress import run_with_progress
+
+# main.py importe plot_comparison — c'est format_comparison
+plot_comparison = format_comparison
