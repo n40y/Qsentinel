@@ -1,0 +1,108 @@
+<!--  report/templates/report_template.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rapport Qsentinel - {{ host }}:{{ port }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #f0f0f0; padding: 10px; border-radius: 5px; }
+        .section { margin: 20px 0; }
+        .vulnerable { color: red; }
+        .safe { color: green; }
+        .warning { color: orange; }
+        .score { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Rapport Qsentinel</h1>
+        <p>Cible: {{ host }}:{{ port }}</p>
+        <p>Score de robustesse: <span class="score">{{ score }}/100</span></p>
+    </div>
+
+    <div class="section">
+        <h2>Configuration TLS</h2>
+        <p><strong>Versions TLS:</strong> {{ tls_versions|join(", ") }}</p>
+        <p><strong>Algorithme de clé:</strong> {{ key_algorithm }} ({{ key_size }} bits)</p>
+        <p><strong>Signature du certificat:</strong> {{ cert_signature }}</p>
+        <p><strong>Cipher Suites:</strong></p>
+        <ul>
+            {% for cs in cipher_suites %}
+            <li>{{ cs }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Temps de cassage classique</h2>
+        {% if classical %}
+        <p><strong>Algorithme:</strong> {{ classical.classique.algo }}</p>
+        <p><strong>Taille de clé:</strong> {{ classical.classique.key_size }} bits</p>
+        <p><strong>Opérations estimées:</strong> {{ classical.classique.ops_estimees }}</p>
+        <p><strong>Temps estimé:</strong> {{ classical.classique.temps_classique }}</p>
+        {% else %}
+        <p>Aucune estimation disponible.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Temps de cassage quantique</h2>
+        {% if quantum %}
+        <p><strong>Impact Grover:</strong></p>
+        <ul>
+            {% for key, value in quantum.grover_impact.items() %}
+            <li><strong>{{ key }}:</strong> {{ value }}</li>
+            {% endfor %}
+        </ul>
+        {% if quantum.shor_estimate %}
+        <p><strong>Impact Shor:</strong></p>
+        <p>Algorithme: {{ quantum.shor_estimate.algo }}</p>
+        <p>Taille de clé: {{ quantum.shor_estimate.key_size }} bits</p>
+        <p>Opérations: {{ quantum.shor_estimate.ops }}</p>
+        <p>Temps estimé: {{ quantum.shor_estimate.time_readable }}</p>
+        {% endif %}
+        {% else %}
+        <p>Aucune estimation disponible.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Recommandations</h2>
+        {% if recommendations %}
+        <h3>Algorithmes asymétriques</h3>
+        <ul>
+            {% for rec in recommendations.asymmetric %}
+            <li>
+                <strong>Actuel:</strong> {{ rec.current }}<br>
+                <strong>Recommandation:</strong> {{ rec.recommendation }}<br>
+                <strong>Raison:</strong> {{ rec.reason }}
+            </li>
+            {% endfor %}
+        </ul>
+        <h3>Algorithmes symétriques</h3>
+        <ul>
+            {% for rec in recommendations.symmetric %}
+            <li>
+                <strong>Actuel:</strong> {{ rec.current }}<br>
+                <strong>Recommandation:</strong> {{ rec.recommendation }}<br>
+                <strong>Raison:</strong> {{ rec.reason }}
+            </li>
+            {% endfor %}
+        </ul>
+        <h3>Hashs</h3>
+        <ul>
+            {% for rec in recommendations.hash %}
+            <li>
+                <strong>Actuel:</strong> {{ rec.current }}<br>
+                <strong>Recommandation:</strong> {{ rec.recommendation }}<br>
+                <strong>Raison:</strong> {{ rec.reason }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>Aucune recommandation.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
