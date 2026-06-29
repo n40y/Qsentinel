@@ -1,6 +1,6 @@
 # report/html_report.py
 
-from jinja2 import Envirronement, FileSystemLoader
+from jinja2 import Environement, FileSystemLoader
 from os import path
 
 # Génère un rapport html à partir des données obtenues
