@@ -15,7 +15,7 @@ L'outil analyse les flux réels pour cartographier le niveau de risque et estime
 * **Rapports Clairs :** Génération automatique d'un rapport HTML synthétique pour visualiser immédiatement les points de rupture.
 
 ## 🛠️ Architecture du Projet
-
+```bash
 Qsentinel/
 ├── algo/
 │   ├── __init__.py
@@ -57,3 +57,4 @@ Qsentinel/
 ├── main.py
 ├── requirements.txt
 └── README.md
+```
