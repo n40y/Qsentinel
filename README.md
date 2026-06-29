@@ -25,7 +25,7 @@ Qsentinel/
 │   └── complexity.py
 ├── cli/
 │   ├── __init__.py
-│   ├── formatter.py   # + graphiques ASCII
+│   ├── formatter.py
 │   └── progress.py
 ├── crypto/
 │   ├── __init__.py
@@ -36,14 +36,14 @@ Qsentinel/
 │   ├── __init__.py
 │   ├── shor.py
 │   ├── grover.py
-│   ├── qpe.py        # NOUVEAU
+│   ├── qpe.py
 │   ├── simulator.py
 │   └── ibm_runner.py
 ├── scanner/
 │   ├── __init__.py
 │   ├── tls_scanner.py
-│   ├── ssh_scanner.py # NOUVEAU
-│   └── vuln_db.py     # Mis à jour
+│   ├── ssh_scanner.py
+│   └── vuln_db.py
 ├── report/
 │   ├── __init__.py
 │   ├── html_report.py
