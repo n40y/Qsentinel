@@ -18,36 +18,52 @@ def _seconds_to_readable(seconds: float) -> str:
     else:
         return f"{seconds/3.15e9:.2e} milliards d'années"
 
+
 def classic_time_breakable(key_size: int, algo: str) -> dict:
     if algo in ("RSA", "DH"):
-        n = pow(2, key_size)
-        ops = exp(1.923 * pow(log(n), (1/3)) * pow(log(log(n)), (2/3)))
+        # GNFS : complexité sous-exponentielle, calcul en log pour éviter l'overflow
+        # log2(ops) ≈ 1.923 * (key_size * ln2)^(1/3) * (log(key_size * ln2))^(2/3) / ln2
+        import math
+        ln2 = math.log(2)
+        log_n = key_size * ln2  # ln(2^key_size)
+        log2_ops = (1.923 * (log_n ** (1/3)) * (math.log(log_n) ** (2/3))) / ln2
+        ops_str = f"2^{log2_ops:.1f}"
+        seconds = (2 ** log2_ops) / OPS_PER_SECOND_CLASSIC if log2_ops < 200 else float('inf')
     elif algo in ("ECC", "EC"):
-        ops = pow(2, (key_size / 2))
+        log2_ops = key_size / 2
+        ops_str = f"2^{log2_ops:.1f}"
+        seconds = (2 ** log2_ops) / OPS_PER_SECOND_CLASSIC if log2_ops < 200 else float('inf')
     else:
-        ops = pow(2, key_size)
+        log2_ops = key_size
+        ops_str = f"2^{log2_ops:.1f}"
+        seconds = (2 ** log2_ops) / OPS_PER_SECOND_CLASSIC if log2_ops < 200 else float('inf')
 
-    seconds = ops / OPS_PER_SECOND_CLASSIC
     return {
         "algo": algo,
         "key_size": key_size,
-        "ops_estimees": f"{ops:.2e}",
+        "ops_estimees": ops_str,
         "temps_classique": _seconds_to_readable(seconds),
     }
 
+
 def quantic_time_breakable(key_size: int, algo: str) -> dict:
     if algo in ("RSA", "DH", "ECC", "EC"):
-        ops = pow(key_size, 3)
+        # Shor : polynomiale en key_size
+        ops = float(key_size ** 3)
     else:
-        ops = pow(2, (key_size / 2))
+        # Grover : racine carrée de l'espace de recherche
+        log2_ops = key_size / 2
+        ops = 2 ** log2_ops if log2_ops < 200 else float('inf')
 
     seconds = ops / OPS_PER_SECOND_QUANTIC
+
     return {
         "algo": algo,
         "key_size": key_size,
         "ops_estimees": f"{ops:.2e}",
         "temps_quantique": _seconds_to_readable(seconds),
     }
+    
 
 def estimate_classical_time(results: dict) -> dict:
     tls = results.get("tls", {})
