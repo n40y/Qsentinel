@@ -1,0 +1,7 @@
+qiskit
+qiskit-aer
+sslyze
+cryptography
+liboqs-python
+rich
+jinja2
