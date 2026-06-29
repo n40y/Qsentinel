@@ -1,4 +1,5 @@
 # main.py
+
 from scanner import scan_target
 from algo import estimate_classical_time
 from quantum import estimate_quantum_time
@@ -11,6 +12,8 @@ from cli import (
     print_error,
     print_success,
     print_summary,
+    plot_comparison,
+    plot_benchmark_results,
     run_with_progress,
 )
 from argparse import ArgumentParser
@@ -31,7 +34,7 @@ def main():
         "-p", "--port",
         type=int,
         default=443,
-        help="Port TLS à scanner (défaut: 443)",
+        help="Port à scanner (défaut: 443 pour TLS, 22 pour SSH)",
     )
     parser.add_argument(
         "-o", "--output",
@@ -53,6 +56,11 @@ def main():
         action="store_true",
         help="Exécuter des benchmarks sur les algorithmes",
     )
+    parser.add_argument(
+        "--demo-qpe",
+        action="store_true",
+        help="Démonstration de Quantum Phase Estimation (QPE)",
+    )
 
     args = parser.parse_args()
 
@@ -68,11 +76,27 @@ def main():
     try:
         results = {}
 
-        # Étape 1: Scan TLS
-        print_section("🔍 Scan TLS en cours...")
+        # Étape 0: Démonstration QPE (optionnelle)
+        if args.demo_qpe:
+            from quantum.qpe import demo_qpe
+            demo_qpe()
+            console.print()
+            return  # On quitte après la démo
+
+        # Étape 1: Scan TLS ou SSH
+        print_section(f"🔍 Scan en cours sur {args.target}:{args.port}...")
         results = scan_target(args.target, args.port, args.verbose)
+
+        # Vérifier si le scan a réussi
+        if not results.get("tls") and not results.get("ssh"):
+            print_error(f"Aucun résultat pour {args.target}:{args.port}. Vérifiez la cible et le port.")
+            sys.exit(1)
+
         if args.verbose:
-            print_success(f"Scan TLS terminé pour {args.target}:{args.port}")
+            if results.get("tls"):
+                print_success(f"Scan TLS terminé pour {args.target}:{args.port}")
+            if results.get("ssh"):
+                print_success(f"Scan SSH terminé pour {args.target}:{args.port}")
 
         # Étape 2: Estimation classique
         print_section("💻 Estimation des temps de cassage classique...")
@@ -116,16 +140,22 @@ def main():
                 "Exécution des tests de performance..."
             )
             results["benchmarks"] = benchmarks
+            plot_benchmark_results(benchmarks)
 
         # Affichage final du résumé
         print_section("📋 Résumé des résultats")
         print_summary(results)
+
+        # Afficher le graphique de comparaison (si données disponibles)
+        if results.get("classical") and results.get("quantum"):
+            plot_comparison(results["classical"], results["quantum"])
 
     except Exception as e:
         print_error(f"Erreur critique: {e}")
         if args.verbose:
             console.print_exception()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     from rich.console import Console
