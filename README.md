@@ -23,6 +23,92 @@ Qsentinel exists to make that gap visible. It runs the real estimations (classic
 - **Benchmark suite** measuring the actual runtime of each estimation/simulation routine (BSGS, RSA factorization, Shor, Grover, Kyber, Dilithium).
 - **HTML report generation** with all of the above, ready to share or archive.
 
+## Installation
+
+It's strongly recommended to run Qsentinel inside a virtual environment, since it depends on `qiskit`, `liboqs`, `sslyze`, and `paramiko`.
+
+<details>
+<summary><b>Option A — using <code>venv</code> (standard library)</b></summary>
+
+**Linux / macOS**
+
+```bash
+git clone https://github.com/n40y/Qsentinel.git
+cd Qsentinel
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Windows (PowerShell)**
+
+```powershell
+git clone https://github.com/n40y/Qsentinel.git
+cd Qsentinel
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+**Windows (cmd.exe)**
+
+```cmd
+git clone https://github.com/n40y/Qsentinel.git
+cd Qsentinel
+python -m venv venv
+venv\Scripts\activate.bat
+pip install -r requirements.txt
+```
+
+To leave the environment at any time: `deactivate`.
+
+</details>
+
+<details>
+<summary><b>Option B — using <a href="https://docs.astral.sh/uv/">uv</a> (faster, recommended)</b></summary>
+
+`uv` handles the virtual environment and dependency installation in one step, on Linux, macOS, and Windows alike.
+
+```bash
+git clone https://github.com/n40y/Qsentinel.git
+cd Qsentinel
+uv venv
+```
+
+Then activate it the same way as a standard `venv`:
+
+```bash
+# Linux / macOS
+source .venv/bin/activate
+
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```bash
+uv pip install -r requirements.txt
+```
+
+Or, without activating the environment at all, run commands directly through `uv`:
+
+```bash
+uv run main.py -t google.com -p 443 -v --benchmark
+```
+
+If you don't have `uv` installed yet:
+
+```bash
+# Linux / macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows PowerShell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+</details>
+
 ## Usage
 
 ```bash
