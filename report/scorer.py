@@ -1,38 +1,43 @@
 # report/scorer.py
 
+"""
+Calcule un score de 0 à 100 représentant la robustesse post-quantique
+de la configuration auditée. Utilisé par html_report.py pour l'anneau
+de score et le bandeau de couleur du rapport.
+"""
 
-# Note la robustesse cryptographique de 0 à 100.
+
 def score(results: dict) -> int:
-    score = 100
-    tls = results.get("tls", {})
-    classical = results.get("classical", {})
-    quantum = results.get("quantum", {})
+    """
+    100 = configuration entièrement résistante au quantique
+    0   = configuration totalement vulnérable / scan en échec
 
+    La logique :
+      - un scan en erreur ou vide -> 0
+      - aucun algo vulnérable détecté -> score élevé (90)
+      - chaque algo vulnérable détecté (RSA, EC, DH, DSA...) pénalise le score
+      - la présence de cipher suites obsolètes (RC4, 3DES, NULL, EXPORT)
+        pénalise un peu plus, car cumulée à la vulnérabilité quantique
+    """
+    tls = results.get("tls", {}) or {}
 
-    # Pénalités pour les algorithmes vulnérables
-    algo = tls.get("key_algorithm", "")
-    if algo in ["RSA", "EC", "DH", "DSA"]:
-        key_size = tls.get("key_size", 0)
-        if key_size <= 2048:
-            score -= 40  # Très vulnérable
-        elif key_size <= 4096:
-            score -= 20  # Vulnérable à long terme
-        else:
-            score -= 10  # Moins vulnérable mais pas sûr
+    if not tls or tls.get("errors"):
+        return 0
 
-
-    # Pénalités pour AES-128
+    vulnerable = tls.get("quantum_vulnerable", [])
     cipher_suites = tls.get("cipher_suites", [])
-    if any("AES_128" in cs for cs in cipher_suites):
-        score -= 20
 
-    # Bonus pour AES-256
-    if any("AES_256" in cs for cs in cipher_suites):
-        score += 5
+    if not vulnerable:
+        base_score = 90
+    else:
+        penalty = min(70, len(vulnerable) * 25)
+        base_score = max(15, 90 - penalty)
 
-    # Bonus pour les algorithmes post-quantiques (si détectés)
-    if any("Kyber" in cs or "Dilithium" in cs for cs in cipher_suites):
-        score += 30
+    legacy_markers = ("RC4", "3DES", "NULL", "EXPORT", "DES_CBC")
+    legacy_count = sum(
+        1 for cs in cipher_suites if any(marker in cs for marker in legacy_markers)
+    )
+    if legacy_count > 0:
+        base_score = max(5, base_score - min(20, legacy_count * 5))
 
-     # Score entre 0 et 100
-    return max(0, min(100, score))
+    return int(base_score)
