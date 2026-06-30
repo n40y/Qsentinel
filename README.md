@@ -1,5 +1,8 @@
 # Qsentinel
 
+![Python](https://img.shields.io/badge/Python-3.x-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+
 **Post-Quantum Cryptographic Audit Tool**
 
 Qsentinel scans live TLS/SSH endpoints and tells you, in concrete numbers, how long it would actually take to break them — once with classical computing, once with a quantum computer running Shor's or Grover's algorithm.
