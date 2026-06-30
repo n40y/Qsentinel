@@ -1,31 +1,31 @@
 # crypto/kyber_demo.py
 
 try:
-    from oqs import KeyEncapsulation
-    OQS_AVAILABLE = True
+    from kyber_py.ml_kem import ML_KEM_512
+    KYBER_AVAILABLE = True
 except ImportError:
-    OQS_AVAILABLE = False
+    KYBER_AVAILABLE = False
 
 
-# Démo de Kyber — KEM post-quantique (NIST ML-KEM).
 def kyber_demo() -> dict:
-    if not OQS_AVAILABLE:
+    """
+    Démo Kyber (ML-KEM-512, FIPS 203) — implémentation pure Python,
+    zéro dépendance C/compilation. pip install kyber-py suffit.
+    """
+    if not KYBER_AVAILABLE:
         return {
-            "algo": "Kyber512",
-            "error": "liboqs-python non disponible (pip install liboqs-python)",
+            "algo": "ML-KEM-512 (Kyber)",
+            "error": "kyber-py non installé (pip install kyber-py)",
             "success": False,
         }
 
-    kem_name = "Kyber512"
-    kem = KeyEncapsulation(kem_name)
-
-    public_key = kem.generate_keypair()
-    ciphertext, shared_secret_sender = kem.encap_secret(public_key)
-    shared_secret_receiver = kem.decap_secret(ciphertext)
+    ek, dk = ML_KEM_512.keygen()
+    shared_secret_sender, ciphertext = ML_KEM_512.encaps(ek)
+    shared_secret_receiver = ML_KEM_512.decaps(dk, ciphertext)
 
     return {
-        "algo": kem_name,
-        "public_key_size": len(public_key),
+        "algo": "ML-KEM-512 (Kyber)",
+        "public_key_size": len(ek),
         "ciphertext_size": len(ciphertext),
         "shared_secret_size": len(shared_secret_sender),
         "success": shared_secret_sender == shared_secret_receiver,
