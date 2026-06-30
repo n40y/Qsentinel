@@ -5,12 +5,20 @@ from quantum.grover import estimate_quantum_time as grover_estimate
 
 
 def estimate_quantum_time(results: dict) -> dict:
-    """Estime le temps de cassage quantique pour les algorithmes détectés."""
-    tls = results.get("tls", {})
+    tls = results.get("tls") or {}
     algo = tls.get("key_algorithm", "")
     key_size = tls.get("key_size", 0)
 
-    quantum_results = {}
+    # Normaliser l'algo comme dans complexity.py
+    for known in ("RSA", "EC", "DSA", "DH"):
+        if known in algo.upper():
+            algo = known
+            break
+
+    quantum_results = {
+        "algo": algo,
+        "key_size": key_size,
+    }
 
     # Estimation pour Grover (chiffrement symétrique)
     quantum_results.update(grover_estimate(results))
@@ -25,4 +33,4 @@ def estimate_quantum_time(results: dict) -> dict:
             "time_readable": shor_estimate["temps_quantique"],
         }
 
-    return quantum_results
+    return quantum_results   # ← on retourne le dict réellement construit
