@@ -1,67 +1,65 @@
-# Qsentinel ⚛️🛡️
+# Qsentinel
 
-**Qsentinel** est un outil d'audit de robustesse cryptographique conçu pour évaluer la vulnérabilité des configurations réseau (TLS) face aux futures menaces du calcul quantique, tout en guidant la transition vers la cryptographie post-quantique (PQC).
+**Post-Quantum Cryptographic Audit Tool**
 
-L'outil analyse les flux réels pour cartographier le niveau de risque et estimer géométriquement les écarts de temps de cassage entre les superordinateurs classiques et les algorithmes quantiques de rupture (Shor et Grover).
+Qsentinel scans live TLS/SSH endpoints and tells you, in concrete numbers, how long it would actually take to break them — once with classical computing, once with a quantum computer running Shor's or Grover's algorithm.
 
-## 🚀 Fonctionnalités
+## Why this tool exists
 
-* **Scanner TLS Intégré :** Audit dynamique des versions TLS et extraction automatique des suites de chiffrement (*cipher suites*) acceptées et des métadonnées du certificat serveur.
-* **Modélisation des Menaces Quantiques :**
-    * **Impact Shor :** Évaluation de la rupture des clés asymétriques (RSA, ECC, DH) et calcul du passage d'une complexité classique exponentielle à une résolution quantique polynomiale.
-    * **Impact Grover :** Analyse de l'affaiblissement du chiffrement symétrique (ex: AES-128 vs AES-256) par réduction quadratique de l'espace des clés.
-* **Laboratoire Quantique (Simulation & Hardware) :** Exécution et benchmark de circuits quantiques (Qiskit) en simulation locale ou directement sur les processeurs physiques d'IBM Quantum via le cloud.
-* **Moteur de Recommandation PQC :** Orientation vers les standards de transition post-quantique validés par le NIST (CRYSTALS-Kyber pour l'encapsulation de clés, CRYSTALS-Dilithium pour la signature).
-* **Rapports Clairs :** Génération automatique d'un rapport HTML synthétique pour visualiser immédiatement les points de rupture.
+Most cryptographic audit tools tell you *what* algorithm a server uses (RSA-2048, AES-128, SHA-256...) and flag it as "weak" or "strong" based on static rules. That's useful, but it doesn't really answer the question that matters: **weak against what, and for how long?**
 
-# Le programme s'utilise avec le terminal.
-![Image du shell de Qsentinel](images/qsentinel_terminal.png)
+RSA-2048 is effectively unbreakable classically — the estimate is tens of trillions of years. The same key, attacked with a sufficiently large fault-tolerant quantum computer running Shor's algorithm, falls in a matter of hours. That gap — from "longer than the age of the universe" to "before lunch" — is the entire point of post-quantum cryptography, and it's very hard to internalize from a spec sheet.
 
-# Les résultats sont visibles également via un fichier html qu'on lance dans son navigateur.
+Qsentinel exists to make that gap visible. It runs the real estimations (classical factorization complexity, Grover's quadratic speedup against symmetric ciphers, Shor's algorithm against RSA/ECC), benchmarks them, and produces a report that shows — side by side — what "secure" currently means and what it will stop meaning once quantum hardware catches up. The goal isn't to predict exactly when that happens; it's to show *why* migrating to post-quantum algorithms (Kyber, Dilithium, and the rest of the NIST PQC suite) isn't a theoretical precaution but a measurable, quantifiable necessity.
 
-![Image du rapport Qsentinel généré](images/qsentinel_report.png)
+## What it does
 
-## 🛠️ Architecture du Projet
+- **Live TLS/SSH scanning** of a target host (`sslyze`, `paramiko`) — TLS versions, cipher suites, certificate key type and size.
+- **Classical cracking time estimation** for the detected algorithms (RSA factorization via GNFS complexity, ECC via Pollard's rho / BSGS).
+- **Quantum cracking time estimation** by simulating the relevant algorithms with Qiskit — Shor's algorithm against RSA/ECC, Grover's algorithm against symmetric keys and hashes.
+- **Side-by-side comparison** of classical vs. quantum attack time, with the resulting speedup factor.
+- **Post-quantum recommendations** mapped to NIST PQC standards (e.g. Kyber for key exchange, Dilithium for signatures).
+- **Robustness score** (0–100) summarizing the target's overall posture against both classical and quantum threats.
+- **Benchmark suite** measuring the actual runtime of each estimation/simulation routine (BSGS, RSA factorization, Shor, Grover, Kyber, Dilithium).
+- **HTML report generation** with all of the above, ready to share or archive.
+
+## Usage
+
 ```bash
-Qsentinel/
-├── algo/
-│   ├── __init__.py
-│   ├── benchmark.py
-│   ├── bsgs.py
-│   ├── rsa_naive.py
-│   └── complexity.py
-├── cli/
-│   ├── __init__.py
-│   ├── formatter.py
-│   └── progress.py
-├── crypto/
-│   ├── __init__.py
-│   ├── comparator.py
-│   ├── kyber_demo.py
-│   └── dilithium.py
-├── quantum/
-│   ├── __init__.py
-│   ├── shor.py
-│   ├── grover.py
-│   ├── qpe.py
-│   ├── simulator.py
-│   └── ibm_runner.py
-├── scanner/
-│   ├── __init__.py
-│   ├── tls_scanner.py
-│   ├── ssh_scanner.py
-│   └── vuln_db.py
-├── report/
-│   ├── __init__.py
-│   ├── html_report.py
-│   ├── scorer.py
-│   └── templates/
-│       └── report_template.html
-├── tests/
-│   ├── __init__.py
-│   ├── test_bsgs.py
-│   ├── test_grover.py
-├── main.py
-├── requirements.txt
-└── README.md
+python main.py -t <target> -p <port> -v --benchmark
 ```
+
+| Option | Description |
+|---|---|
+| `-t, --target` | Target host to scan (e.g. `google.com`) |
+| `-p, --port` | Target port (default: `443`) |
+| `-v, --verbose` | Verbose output |
+| `--benchmark` | Run and display the algorithm benchmark suite |
+
+The scan produces a console summary and an HTML report (`report.html`) containing the TLS configuration, the classical/quantum comparison, the post-quantum recommendations, and the robustness score.
+
+### Example: CLI run
+
+<!-- IMAGE: CLI launch — replace with a screenshot of `python main.py -t <target> -p <port> -v --benchmark` running -->
+<p align="center">
+  <img src="images/qsentinel_terminal.png" alt="Qsentinel CLI scan in progress" width="850">
+</p>
+
+### Example: generated report
+
+<!-- IMAGE: HTML report — replace with a screenshot of report.html -->
+<p align="center">
+  <img src="images/qsentinel_report.png" alt="Qsentinel HTML report" width="850">
+</p>
+
+## Tech stack
+
+`Python` · `sslyze` · `paramiko` · `Qiskit` · `liboqs`
+
+## Disclaimer
+
+Qsentinel only performs passive TLS/SSH handshake analysis and offline cryptographic estimation — it does not attempt to break or interfere with any target's cryptography. Always make sure you are authorized to scan a given host before doing so.
+
+## Author
+
+[n40y](https://github.com/n40y)
