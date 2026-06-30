@@ -1,8 +1,10 @@
 # algo/complexity.py
-from math import exp, log, pow
 
-OPS_PER_SECOND_CLASSIC = 1e12  # 1 Tera ops/sec
-OPS_PER_SECOND_QUANTIC = 1e6   # 1 Million ops/sec
+from math import log
+
+OPS_PER_SECOND_CLASSIC = 1e12
+OPS_PER_SECOND_QUANTIC = 1e6
+
 
 def _seconds_to_readable(seconds: float) -> str:
     if seconds < 60:
@@ -21,39 +23,38 @@ def _seconds_to_readable(seconds: float) -> str:
 
 def classic_time_breakable(key_size: int, algo: str) -> dict:
     if algo in ("RSA", "DH"):
-        # GNFS : complexité sous-exponentielle, calcul en log pour éviter l'overflow
-        # log2(ops) ≈ 1.923 * (key_size * ln2)^(1/3) * (log(key_size * ln2))^(2/3) / ln2
-        import math
-        ln2 = math.log(2)
-        log_n = key_size * ln2  # ln(2^key_size)
-        log2_ops = (1.923 * (log_n ** (1/3)) * (math.log(log_n) ** (2/3))) / ln2
-        ops_str = f"2^{log2_ops:.1f}"
-        seconds = (2 ** log2_ops) / OPS_PER_SECOND_CLASSIC if log2_ops < 200 else float('inf')
+        ln2 = log(2)
+        log_n = key_size * ln2
+        log2_ops = (1.923 * (log_n ** (1/3)) * (log(log_n) ** (2/3))) / ln2
     elif algo in ("ECC", "EC"):
         log2_ops = key_size / 2
-        ops_str = f"2^{log2_ops:.1f}"
-        seconds = (2 ** log2_ops) / OPS_PER_SECOND_CLASSIC if log2_ops < 200 else float('inf')
     else:
         log2_ops = key_size
-        ops_str = f"2^{log2_ops:.1f}"
-        seconds = (2 ** log2_ops) / OPS_PER_SECOND_CLASSIC if log2_ops < 200 else float('inf')
+
+    if log2_ops < 990:
+        ops = 2 ** log2_ops
+        seconds = ops / OPS_PER_SECOND_CLASSIC
+    else:
+        ops = float('inf')
+        seconds = float('inf')
+
+    ops_str = f"{ops:.2e}" if ops != float('inf') else "1.00e+300"
+    seconds_capped = seconds if seconds != float('inf') else 1e300
 
     return {
         "algo": algo,
         "key_size": key_size,
         "ops_estimees": ops_str,
-        "temps_classique": _seconds_to_readable(seconds),
+        "temps_classique": _seconds_to_readable(seconds_capped),
     }
 
 
 def quantic_time_breakable(key_size: int, algo: str) -> dict:
     if algo in ("RSA", "DH", "ECC", "EC"):
-        # Shor : polynomiale en key_size
         ops = float(key_size ** 3)
     else:
-        # Grover : racine carrée de l'espace de recherche
         log2_ops = key_size / 2
-        ops = 2 ** log2_ops if log2_ops < 200 else float('inf')
+        ops = 2 ** log2_ops if log2_ops < 990 else 1e300
 
     seconds = ops / OPS_PER_SECOND_QUANTIC
 
@@ -63,17 +64,16 @@ def quantic_time_breakable(key_size: int, algo: str) -> dict:
         "ops_estimees": f"{ops:.2e}",
         "temps_quantique": _seconds_to_readable(seconds),
     }
-    
+
 
 def estimate_classical_time(results: dict) -> dict:
-    tls = results.get("tls", {})
+    tls = results.get("tls") or {}
     algo = tls.get("key_algorithm", "")
     key_size = tls.get("key_size", 0)
 
     if not algo or not key_size:
         return {}
 
-    # Normaliser l'algo
     for known in ("RSA", "EC", "DSA", "DH"):
         if known in algo.upper():
             algo = known
@@ -84,6 +84,6 @@ def estimate_classical_time(results: dict) -> dict:
 
     return {
         "classique": classical,
-        "quantique_estimation": quantical,  # On garde une copie pour la comparaison
+        "quantique_estimation": quantical,
         "vulnerable_quantique": algo in ("RSA", "EC", "DH", "DSA"),
     }
