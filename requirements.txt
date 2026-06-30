@@ -2,8 +2,9 @@ qiskit
 qiskit-aer
 sslyze
 cryptography
-liboqs-python
-rich
 jinja2
-paramiko
+rich
 asciichartpy
+numpy
+kyber-py
+dilithium-py
