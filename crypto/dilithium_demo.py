@@ -1,32 +1,32 @@
 # crypto/dilithium_demo.py
 
 try:
-    from oqs import Signature
-    OQS_AVAILABLE = True
+    from dilithium_py.ml_dsa import ML_DSA_44
+    DILITHIUM_AVAILABLE = True
 except ImportError:
-    OQS_AVAILABLE = False
+    DILITHIUM_AVAILABLE = False
 
 
-# Démo de Dilithium — signature post-quantique (NIST ML-DSA).
 def dilithium_demo() -> dict:
-    if not OQS_AVAILABLE:
+    """
+    Démo Dilithium (ML-DSA-44, FIPS 204) — implémentation pure Python.
+    pip install dilithium-py suffit, aucune compilation requise.
+    """
+    if not DILITHIUM_AVAILABLE:
         return {
-            "algo": "Dilithium3",
-            "error": "liboqs-python non disponible (pip install liboqs-python)",
+            "algo": "ML-DSA-44 (Dilithium)",
+            "error": "dilithium-py non installé (pip install dilithium-py)",
             "valid": False,
         }
 
-    sig_name = "Dilithium3"
-    sig = Signature(sig_name)
-
-    public_key = sig.generate_keypair()
+    pk, sk = ML_DSA_44.keygen()
     message = b"Qsentinel - test de signature post-quantique"
-    signature = sig.sign(message)
-    is_valid = sig.verify(message, signature, public_key)
+    signature = ML_DSA_44.sign(sk, message)
+    is_valid = ML_DSA_44.verify(pk, message, signature)
 
     return {
-        "algo": sig_name,
-        "public_key_size": len(public_key),
+        "algo": "ML-DSA-44 (Dilithium)",
+        "public_key_size": len(pk),
         "signature_size": len(signature),
         "message_size": len(message),
         "valid": is_valid,
