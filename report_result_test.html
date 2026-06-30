@@ -1,0 +1,674 @@
+<!--  report.html -->
+  
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qsentinel — google.com:443</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    /* ── Tokens ── */
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #21262d;
+      --text:     #c9d1d9;
+      --muted:    #8b949e;
+      --green:    #3fb950;
+      --yellow:   #d29922;
+      --red:      #f85149;
+      --blue:     #58a6ff;
+      --purple:   #bc8cff;
+      --cyan:     #39d0c8;
+      --font-mono: "Hack Bold", "Ubuntu Sans Mono", "Cascadia Code", monospace;
+      --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 32px 20px 64px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+
+    /* ── Layout ── */
+    .page { max-width: 960px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 36px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .logo-text { line-height: 1.2; }
+    .logo-text strong { font-size: 18px; color: #fff; letter-spacing: -.3px; }
+    .logo-text span { display: block; font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+    .meta { text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--muted); line-height: 1.8; }
+    .meta b { color: var(--text); }
+
+    /* ── Score hero ── */
+    .score-hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .score-ring {
+      position: relative;
+      width: 110px; height: 110px;
+      flex-shrink: 0;
+    }
+
+    .score-ring svg { transform: rotate(-90deg); }
+
+    .score-ring .track { fill: none; stroke: var(--border); stroke-width: 8; }
+    .score-ring .fill  { fill: none; stroke-width: 8; stroke-linecap: round;
+                         transition: stroke-dashoffset .6s ease; }
+
+    .score-ring .number {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: var(--font-mono);
+    }
+    .score-ring .number strong { font-size: 26px; line-height: 1; }
+    .score-ring .number span   { font-size: 11px; color: var(--muted); }
+
+    .score-details h2 { font-size: 20px; color: #fff; margin-bottom: 6px; }
+    .score-details p  { color: var(--muted); font-size: 13px; max-width: 420px; }
+
+    .score-bar-wrap { margin-top: 14px; }
+    .score-bar-label { display: flex; justify-content: space-between; font-size: 11px;
+                       font-family: var(--font-mono); color: var(--muted); margin-bottom: 5px; }
+    .score-bar-track { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+    .score-bar-fill  { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+    /* ── Sections ── */
+    .section { margin-bottom: 32px; }
+
+    .section-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .section-head .icon { font-size: 18px; }
+    .section-head h3 { font-size: 15px; font-weight: 600; color: #fff; }
+
+    /* ── Table ── */
+    .tbl-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px; font-family: var(--font-mono);
+    }
+
+    thead th {
+      background: #1c2128; color: var(--muted);
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; padding: 10px 16px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+    tbody td { padding: 10px 16px; vertical-align: middle; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; font-family: var(--font-sans);
+      white-space: nowrap;
+    }
+    .badge.safe    { background: rgba(63,185,80,.15);  color: var(--green);  }
+    .badge.warn    { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .badge.danger  { background: rgba(248,81,73,.15);  color: var(--red);    }
+    .badge.info    { background: rgba(88,166,255,.12); color: var(--blue);   }
+    .badge.partial { background: rgba(188,140,255,.12);color: var(--purple); }
+
+    /* ── Cipher list ── */
+    .cipher-grid {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .cipher-tag {
+      font-family: var(--font-mono); font-size: 11px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 3px 8px; color: var(--muted);
+    }
+    .cipher-tag.highlight { border-color: var(--red); color: var(--red); }
+    .cipher-tag.ok { border-color: var(--green); color: var(--green); }
+
+    /* ── Rec cards ── */
+    .rec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+
+    .rec-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      border-left: 3px solid var(--yellow);
+    }
+    .rec-card.safe { border-left-color: var(--green); }
+
+    .rec-card .rec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .rec-card .rec-type   { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .rec-card .rec-arrow  {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono); font-size: 12px; margin-bottom: 8px;
+    }
+    .rec-card .rec-from { color: var(--red); }
+    .rec-card .rec-to   { color: var(--green); }
+    .rec-card .rec-sep  { color: var(--muted); }
+    .rec-card .rec-reason { font-size: 12px; color: var(--muted); }
+
+    /* ── Two-column layout ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── Stat boxes ── */
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+    }
+    .stat-box .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .stat-box .stat-value { font-family: var(--font-mono); font-size: 15px; color: #fff; font-weight: 600; }
+    .stat-box .stat-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Versions TLS ── */
+    .tls-versions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tls-pill {
+      font-family: var(--font-mono); font-size: 12px;
+      padding: 4px 12px; border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .tls-pill.modern  { border-color: var(--green); color: var(--green); background: rgba(63,185,80,.08); }
+    .tls-pill.legacy  { border-color: var(--red);   color: var(--red);   background: rgba(248,81,73,.08); }
+    .tls-pill.compat  { border-color: var(--yellow); color: var(--yellow); background: rgba(210,153,34,.08); }
+
+    /* ── Charts ── */
+    .chart-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 16px;
+    }
+    .chart-box .stat-label { margin-bottom: 12px; }
+    .chart-box canvas {
+    max-width: 100%;
+    max-height: 320px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 48px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 28px 0; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🔮</div>
+      <div class="logo-text">
+        <strong>Qsentinel</strong>
+        <span>Audit cryptographique post-quantique</span>
+      </div>
+    </div>
+    <div class="meta">
+      <b>google.com:443</b><br>
+      Généré le <b id="gen-date"></b>
+    </div>
+  </header>
+
+  <!-- ── Score hero ── -->
+  
+    
+    
+  
+  
+  
+
+  <div class="score-hero">
+    <div class="score-ring">
+      <svg viewBox="0 0 100 100" width="110" height="110">
+        <circle class="track" cx="50" cy="50" r="45"></circle>
+        <circle class="fill" cx="50" cy="50" r="45"
+          stroke="#d29922"
+          stroke-dasharray="283"
+          stroke-dashoffset="141.5"
+        ></circle>
+      </svg>
+      <div class="number">
+        <strong style="color:#d29922">50</strong>
+        <span>/100</span>
+      </div>
+    </div>
+
+    <div class="score-details">
+      <h2>Robustesse moyenne</h2>
+      <p>Score de robustesse calculé à partir des algorithmes détectés, des versions TLS actives et de leur résistance aux attaques quantiques (Shor, Grover).</p>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label"><span>0</span><span>50</span><span>100</span></div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width:50%; background:#d29922;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TLS Configuration ── -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">🌐</span>
+      <h3>Configuration TLS</h3>
+    </div>
+
+    <div class="two-col" style="margin-bottom:16px;">
+      <div class="stat-box">
+        <div class="stat-label">Algorithme de clé</div>
+        <div class="stat-value">ECPublicKey</div>
+        <div class="stat-sub">256 bits</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Signature du certificat</div>
+        <div class="stat-value" style="font-size:12px; word-break:break-all;">1.2.840.113549.1.1.11</div>
+      </div>
+    </div>
+
+    <div class="stat-box" style="margin-bottom:16px;">
+      <div class="stat-label" style="margin-bottom:10px;">Versions TLS actives</div>
+      <div class="tls-versions">
+        
+          
+            <span class="tls-pill legacy">tls.1.0 ⚠</span>
+          
+        
+          
+            <span class="tls-pill legacy">tls.1.1 ⚠</span>
+          
+        
+          
+            <span class="tls-pill compat">tls.1.2</span>
+          
+        
+          
+            <span class="tls-pill modern">tls.1.3</span>
+          
+        
+      </div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label" style="margin-bottom:10px;">Cipher Suites détectées</div>
+      <div class="cipher-grid">
+        
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_RSA_WITH_AES_256_CBC_SHA</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag">TLS_RSA_WITH_AES_128_CBC_SHA</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag highlight">TLS_RSA_WITH_3DES_EDE_CBC_SHA</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag">TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA</span>
+            
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_RSA_WITH_AES_256_GCM_SHA384</span>
+            
+          
+        
+          
+        
+          
+            
+            
+              <span class="cipher-tag">TLS_RSA_WITH_AES_128_GCM_SHA256</span>
+            
+          
+        
+          
+        
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</span>
+            
+          
+        
+          
+        
+          
+            
+            
+              <span class="cipher-tag">TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</span>
+            
+          
+        
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_CHACHA20_POLY1305_SHA256</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_AES_256_GCM_SHA384</span>
+            
+          
+        
+          
+            
+            
+              <span class="cipher-tag ok">TLS_AES_128_GCM_SHA256</span>
+            
+          
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Temps de cassage ── -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">⏱️</span>
+      <h3>Résistance estimée aux attaques</h3>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Vecteur</th>
+            <th>Algorithme</th>
+            <th>Taille de clé</th>
+            <th>Opérations</th>
+            <th>Temps estimé</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr>
+            <td><span class="badge info">💻 Classique</span></td>
+            <td>EC</td>
+            <td>256 bits</td>
+            <td>3.40e+38</td>
+            <td>1.08e+17 milliards d'années</td>
+            <td>
+              
+                <span class="badge safe">✅ Sûr</span>
+              
+            </td>
+          </tr>
+          
+
+          
+            
+              
+              <tr>
+                <td><span class="badge partial">🔮 Grover</span></td>
+                <td>AES-128</td>
+                <td>—</td>
+                <td>—</td>
+                <td>64 bits effectifs (cassable)</td>
+                <td>
+                  
+                    <span class="badge danger">❌ Cassable</span>
+                  
+                </td>
+              </tr>
+              
+              <tr>
+                <td><span class="badge partial">🔮 Grover</span></td>
+                <td>AES-256</td>
+                <td>—</td>
+                <td>—</td>
+                <td>128 bits effectifs (sûr)</td>
+                <td>
+                  
+                    <span class="badge safe">✅ Sûr</span>
+                  
+                </td>
+              </tr>
+              
+            
+
+            
+            <tr>
+              <td><span class="badge danger">⚛️ Shor</span></td>
+              <td>EC</td>
+              <td>256 bits</td>
+              <td>1.68e+07</td>
+              <td>16.8 secondes</td>
+              <td><span class="badge danger">❌ Vulnérable</span></td>
+            </tr>
+            
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Graphique : classique vs quantique ── -->
+    
+    <div class="chart-box">
+      <div class="stat-label">Visualisation — écart de résistance (échelle logarithmique)</div>
+      <canvas id="chartClassicalVsQuantum" height="110"></canvas>
+    </div>
+    
+
+    <!-- ── Graphique : distribution Grover ── -->
+    
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Recommandations ── -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">🔒</span>
+      <h3>Recommandations Post-Quantiques (NIST PQC)</h3>
+    </div>
+
+    
+      
+      
+        <div class="rec-grid">
+          
+
+          
+          <div class="rec-card">
+            <div class="rec-header">
+              <span class="rec-type">Symétrique</span>
+              <span class="badge warn">Grover</span>
+            </div>
+            <div class="rec-arrow">
+              <span class="rec-from">AES-128</span>
+              <span class="rec-sep">→</span>
+              <span class="rec-to">AES-256</span>
+            </div>
+            <div class="rec-reason">AES-128 est affaibli par Grover (64 bits effectifs).</div>
+          </div>
+          
+
+          
+          <div class="rec-card">
+            <div class="rec-header">
+              <span class="rec-type">Hash</span>
+              <span class="badge warn">Grover</span>
+            </div>
+            <div class="rec-arrow">
+              <span class="rec-from">SHA-256</span>
+              <span class="rec-sep">→</span>
+              <span class="rec-to">SHA-384 ou SHA-3</span>
+            </div>
+            <div class="rec-reason">SHA-256 est partiellement vulnérable à Grover.</div>
+          </div>
+          
+        </div>
+      
+    
+  </div>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <span>Qsentinel — Audit post-quantique</span>
+    <span>google.com:443 · Score 50/100</span>
+  </footer>
+
+</div>
+
+<script>
+  // Date de génération
+  document.getElementById("gen-date").textContent = new Date().toLocaleDateString("fr-FR", {
+    day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+
+  // ── Configuration globale Chart.js — cohérente avec le thème dark ──
+  Chart.defaults.color = "#8b949e";
+  Chart.defaults.font.family = "'JetBrains Mono', 'Fira Code', monospace";
+  Chart.defaults.borderColor = "#21262d";
+
+  
+  new Chart(document.getElementById("chartClassicalVsQuantum"), {
+    type: "bar",
+    data: {"labels": ["Classique", "Quantique (Shor)"], "datasets": [{"label": "Op\u00e9rations n\u00e9cessaires", "data": [3.4e+38, 16800000.0], "backgroundColor": ["#f85149", "#39d0c8"], "borderRadius": 4}]},
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: true,   // ← change false en true
+        aspectRatio: 3,               // ← ajoute ça pour fixer le ratio largeur/hauteur
+        scales: {
+            x: {
+                type: "logarithmic",
+                title: { display: true, text: "Opérations nécessaires (échelle log)", color: "#8b949e" },
+                grid: { color: "#21262d" },
+                ticks: { color: "#8b949e" }
+            },
+            y: { grid: { display: false }, ticks: { color: "#c9d1d9", font: { size: 13 } } }
+        },
+        plugins: { legend: { display: false } }
+    }
+  });
+  
+  
+</script>
+</body>
+</html>
