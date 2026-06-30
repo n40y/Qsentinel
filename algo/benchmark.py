@@ -31,33 +31,41 @@ def run_benchmark():
         "time_seconds": rsa_time,
     }
 
-    # Benchmark Grover (quantique)
-    print("[*] Benchmark Grover...")
-    target = "1101"
-    grover_result = grover(target, shots=1024)
-    results["grover"] = grover_result
-
     # Benchmark Shor (quantique)
     print("[*] Benchmark Shor...")
-    n = 15  # 3 * 5
+    n = 15
+    start = time.time()
     shor_result = shor_factorize(n, shots=1024)
     results["shor"] = {
         "n": n,
         "factor": shor_result,
-        "time_seconds": "N/A (simulation)",  # à mesurer
+        "time_seconds": time.time() - start,
     }
+
+    # Benchmark Grover (quantique)
+    print("[*] Benchmark Grover...")
+    target = "1101"
+    start = time.time()
+    grover_result = grover(target, shots=1024)
+    grover_result["time_seconds"] = time.time() - start
+    results["grover"] = grover_result
 
     # Benchmark Kyber (PQC)
     print("[*] Benchmark Kyber...")
+    start = time.time()
     kyber_result = kyber_demo()
+    kyber_result["time_seconds"] = time.time() - start
     results["kyber"] = kyber_result
 
     # Benchmark Dilithium (PQC)
     print("[*] Benchmark Dilithium...")
+    start = time.time()
     dilithium_result = dilithium_demo()
+    dilithium_result["time_seconds"] = time.time() - start
     results["dilithium"] = dilithium_result
-
+    
     return results
+
 
 # Compare le temps de déchiffrement classique/quantique pour différentes tailles de clés.
 def compare_classical_vs_quantum():
