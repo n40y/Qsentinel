@@ -14,6 +14,13 @@ L'outil analyse les flux réels pour cartographier le niveau de risque et estime
 * **Moteur de Recommandation PQC :** Orientation vers les standards de transition post-quantique validés par le NIST (CRYSTALS-Kyber pour l'encapsulation de clés, CRYSTALS-Dilithium pour la signature).
 * **Rapports Clairs :** Génération automatique d'un rapport HTML synthétique pour visualiser immédiatement les points de rupture.
 
+# Le programme s'utilise avec le terminal.
+![Image du shell de Qsentinel](images/qsentinel_terminal.png)
+
+# Les résultats sont visibles également via un fichier html qu'on lance dans son navigateur.
+
+![Image du rapport Qsentinel généré](images/qsentinel_report.png)
+
 ## 🛠️ Architecture du Projet
 ```bash
 Qsentinel/
