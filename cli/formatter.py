@@ -8,6 +8,7 @@ from rich.columns import Columns
 from rich import box
 from typing import Dict, List, Any
 from asciichartpy import plot
+import asciichartpy
 import numpy as np
 
 # --- Couleurs et styles ---
@@ -467,24 +468,23 @@ def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> Non
         log_classical = np.log10(classical_sec)
         log_quantum = np.log10(quantum_sec)
 
-        data = {
-            "Classique": [log_classical],
-            "Quantique": [log_quantum],
-        }
-        config = {
-            "height": 10,
-            "colors": [("red", "green")],
-            "axis": True,
-            "title": f"Comparaison {classical_algo} (échelle log10)",
-        }
-        console.print("\n[bold]📈 Graphique de comparaison (échelle logarithmique)[/bold]")
-        console.print(plot(data, config))
-        console.print(
-            f"[red]Classique:[/red] {classical_time_str} | "
-            f"[green]Quantique:[/green] {quantum_time_str}"
-        )
-        speedup = classical_sec / quantum_sec
-        console.print(f"[bold]Accélération:[/bold] [cyan]{speedup:.0f}x plus rapide[/cyan]")
+    data = [
+        [log_classical, log_classical],
+        [log_quantum, log_quantum],
+    ]
+    config = {
+        "height": 10,
+        "colors": [asciichartpy.red, asciichartpy.green],
+    }
+
+    console.print(f"\n[bold]📈 Comparaison {classical_algo} (échelle log10)[/bold]")
+    console.print(plot(data, config))
+    console.print(
+        f"[red]Classique:[/red] {classical_time_str} | "
+        f"[green]Quantique:[/green] {quantum_time_str}"
+    )
+    speedup = classical_sec / quantum_sec
+    console.print(f"[bold]Accélération:[/bold] [cyan]{speedup:.0f}x plus rapide[/cyan]")
 
 
 # Affiche un graphique ASCII des résultats des benchmarks.
@@ -510,12 +510,9 @@ def plot_benchmark_results(benchmarks: Dict[str, Any]) -> None:
     data = [times]
     config = {
         "height": 10,
-        "colors": [("cyan",)],
-        "axis": True,
-        "title": "Temps d'exécution des benchmarks (échelle log10)",
-        "labels": labels,
+        "colors": [asciichartpy.cyan],
     }
-    console.print("\n[bold]📊 Graphique des benchmarks[/bold]")
+    console.print("\n[bold]📊 Temps d'exécution des benchmarks (échelle log10)[/bold]")
     console.print(plot(data, config))
 
 
