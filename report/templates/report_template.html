@@ -1,10 +1,12 @@
 <!--  report/templates/report_template.html -->
+  
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Qsentinel — {{ host }}:{{ port }}</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <style>
     /* ── Tokens ── */
     :root {
@@ -19,7 +21,7 @@
       --blue:     #58a6ff;
       --purple:   #bc8cff;
       --cyan:     #39d0c8;
-      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      --font-mono: "Hack Bold", "Ubuntu Sans Mono", "Cascadia Code", monospace;
       --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
     }
 
@@ -225,6 +227,20 @@
     .tls-pill.modern  { border-color: var(--green); color: var(--green); background: rgba(63,185,80,.08); }
     .tls-pill.legacy  { border-color: var(--red);   color: var(--red);   background: rgba(248,81,73,.08); }
     .tls-pill.compat  { border-color: var(--yellow); color: var(--yellow); background: rgba(210,153,34,.08); }
+
+    /* ── Charts ── */
+    .chart-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 16px;
+    }
+    .chart-box .stat-label { margin-bottom: 12px; }
+    .chart-box canvas {
+    max-width: 100%;
+    max-height: 320px;
+    }
 
     /* ── Footer ── */
     .footer {
@@ -435,6 +451,22 @@
         </tbody>
       </table>
     </div>
+
+    <!-- ── Graphique : classique vs quantique ── -->
+    {% if chart_classical_vs_quantum %}
+    <div class="chart-box">
+      <div class="stat-label">Visualisation — écart de résistance (échelle logarithmique)</div>
+      <canvas id="chartClassicalVsQuantum" height="110"></canvas>
+    </div>
+    {% endif %}
+
+    <!-- ── Graphique : distribution Grover ── -->
+    {% if chart_grover %}
+    <div class="chart-box">
+      <div class="stat-label">Démonstration Grover — distribution des mesures</div>
+      <canvas id="chartGrover" height="110"></canvas>
+    </div>
+    {% endif %}
   </div>
 
   <div class="divider"></div>
@@ -518,6 +550,65 @@
   document.getElementById("gen-date").textContent = new Date().toLocaleDateString("fr-FR", {
     day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
   });
+
+  // ── Configuration globale Chart.js — cohérente avec le thème dark ──
+  Chart.defaults.color = "#8b949e";
+  Chart.defaults.font.family = "'JetBrains Mono', 'Fira Code', monospace";
+  Chart.defaults.borderColor = "#21262d";
+
+  {% if chart_classical_vs_quantum %}
+  new Chart(document.getElementById("chartClassicalVsQuantum"), {
+    type: "bar",
+    data: {{ chart_classical_vs_quantum | safe }},
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: true,   // ← change false en true
+        aspectRatio: 3,               // ← ajoute ça pour fixer le ratio largeur/hauteur
+        scales: {
+            x: {
+                type: "logarithmic",
+                title: { display: true, text: "Opérations nécessaires (échelle log)", color: "#8b949e" },
+                grid: { color: "#21262d" },
+                ticks: { color: "#8b949e" }
+            },
+            y: { grid: { display: false }, ticks: { color: "#c9d1d9", font: { size: 13 } } }
+        },
+        plugins: { legend: { display: false } }
+    }
+  });
+  {% endif %}
+  {% if chart_grover %}
+  new Chart(document.getElementById("chartGrover"), {
+    type: "bar",
+    data: {{ chart_grover | safe }},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: "#8b949e" }
+        },
+        y: {
+          grid: { color: "#21262d" },
+          ticks: { color: "#8b949e" },
+          title: { display: true, text: "Fréquence de mesure", color: "#8b949e" }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#161b22",
+          borderColor: "#21262d",
+          borderWidth: 1,
+          titleColor: "#fff",
+          bodyColor: "#c9d1d9"
+        }
+      }
+    }
+  });
+  {% endif %}
 </script>
 </body>
 </html>
