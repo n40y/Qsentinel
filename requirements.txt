@@ -1,0 +1,10 @@
+qiskit
+qiskit-aer
+sslyze
+cryptography
+jinja2
+rich
+asciichartpy
+numpy
+kyber-py
+dilithium-py

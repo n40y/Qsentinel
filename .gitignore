@@ -1,0 +1,5 @@
+# à ne pas prendre en compte lors du push:
+venv/
+html_reports/
+__pycache__/
+*.pyc
