@@ -5,6 +5,9 @@ from math import log
 OPS_PER_SECOND_CLASSIC = 1e12
 OPS_PER_SECOND_QUANTIC = 1e6
 
+SECONDES_PAR_AN = 3.15e7
+SECONDES_PAR_MILLIARD_ANS = 3.15e16  # 1 milliard d'années en secondes
+
 
 def _seconds_to_readable(seconds: float) -> str:
     if seconds < 60:
@@ -13,12 +16,14 @@ def _seconds_to_readable(seconds: float) -> str:
         return f"{seconds/60:.1f} minutes"
     elif seconds < 86400:
         return f"{seconds/3600:.1f} heures"
-    elif seconds < 3.15e7:
+    elif seconds < SECONDES_PAR_AN:
         return f"{seconds/86400:.1f} jours"
     elif seconds < 3.15e9:
-        return f"{seconds/3.15e7:.1f} ans"
+        return f"{seconds/SECONDES_PAR_AN:.1f} ans"
+    elif seconds < SECONDES_PAR_MILLIARD_ANS:
+        return f"{seconds/SECONDES_PAR_AN:.2e} ans"
     else:
-        return f"{seconds/3.15e9:.2e} milliards d'années"
+        return f"{seconds/SECONDES_PAR_MILLIARD_ANS:.2e} milliards d'années"
 
 
 def classic_time_breakable(key_size: int, algo: str) -> dict:
