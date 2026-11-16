@@ -118,12 +118,15 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 python main.py -t <target> -p <port> -v --benchmark
 ```
 
-| Option | Description |
-|---|---|
-| `-t, --target` | Target host to scan (e.g. `google.com`) |
-| `-p, --port` | Target port (default: `443`) |
+| Option          | Description                                     |
+|-----------------|-------------------------------------------------|
+| `-t, --target`  | Target host to scan (e.g. `google.com`)         |
+| `-p, --port`    | Target port (default: `443`)                    |
 | `-v, --verbose` | Verbose output |
-| `--benchmark` | Run and display the algorithm benchmark suite |
+| `--benchmark`   | Run and display the algorithm benchmark suite   |
+| `-o, --output`  | HTML report file (default : `report.html`)      |
+| `--no_quantum`  | Disables quantum estimation (fast mode)         |
+| `--demo-qpe`    | Demonstration of Quantum Phase Estimation       |
 
 The scan produces a console summary and an HTML report (`report.html`) containing the TLS configuration, the classical/quantum comparison, the post-quantum recommendations, and the robustness score.
 

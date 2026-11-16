@@ -34,6 +34,15 @@ EMOJIS = {
     "time": "⏳",
 }
 
+# --- Seuils et classifications ---
+FAST_THRESHOLD_S = 1.0
+QUANTUM_VULNERABLE_KEY_ALGOS = {"RSA", "EC", "DH", "DSA"}
+BENCH_TYPES = {
+    "bsgs": "Classique", "rsa": "Classique",
+    "grover": "Quantique", "shor": "Quantique",
+    "kyber": "PQC", "dilithium": "PQC",
+}
+
 console = Console()
 
 # --- Fonctions d'affichage de base ---
@@ -59,6 +68,17 @@ def print_warning(message: str) -> None:
 
 
 # --- Fonctions de formatage des résultats ---
+
+# Ajoute une ligne listant jusqu'à max_items éléments.
+def _add_list_row(table: Table, label: str, items: List[str], max_items: int = 5) -> None:
+    if not items:
+        table.add_row(label, "Aucun", EMOJIS["danger"])
+        return
+    text = ", ".join(items[:max_items])
+    if len(items) > max_items:
+        text += f" (+{len(items) - max_items} autres)"
+    table.add_row(label, text, EMOJIS["info"])
+
 
 # Affiche les résultats du scan TLS dans un tableau.
 def format_tls_results(tls: Dict[str, Any]) -> None:
@@ -90,20 +110,13 @@ def format_tls_results(tls: Dict[str, Any]) -> None:
 
     key_algo = tls.get("key_algorithm", "Inconnu")
     key_size = tls.get("key_size", 0)
-    status = EMOJIS["danger"] if key_algo in ["RSA", "EC", "DH", "DSA"] else EMOJIS["safe"]
+    status = EMOJIS["danger"] if key_algo in QUANTUM_VULNERABLE_KEY_ALGOS else EMOJIS["safe"]
     table.add_row("Algorithme de clé", f"{key_algo} ({key_size} bits)", status)
 
     cert_sig = tls.get("cert_signature", "Inconnu")
     table.add_row("Signature du certificat", cert_sig, EMOJIS["info"])
-
-    cipher_suites = tls.get("cipher_suites", [])
-    if cipher_suites:
-        suites_str = ", ".join(cipher_suites[:5])
-        if len(cipher_suites) > 5:
-            suites_str += f" (+{len(cipher_suites) - 5} autres)"
-        table.add_row("Cipher Suites", suites_str, EMOJIS["info"])
-    else:
-        table.add_row("Cipher Suites", "Aucune", EMOJIS["danger"])
+    
+    _add_list_row(table, "Cipher Suites", tls.get("cipher_suites", []))
 
     quantum_vuln = tls.get("quantum_vulnerable", [])
     if quantum_vuln:
@@ -121,6 +134,7 @@ def format_tls_results(tls: Dict[str, Any]) -> None:
         )
 
     console.print(table)
+
 
 def format_ssh_results(ssh: Dict[str, Any]) -> None:
     """Affiche les résultats du scan SSH dans un tableau."""
@@ -146,41 +160,10 @@ def format_ssh_results(ssh: Dict[str, Any]) -> None:
     ssh_version = ssh.get("ssh_version", "Inconnu")
     table.add_row("Version SSH", ssh_version, EMOJIS["info"])
 
-    host_key_algos = ssh.get("host_key_algorithms", [])
-    if host_key_algos:
-        algos_str = ", ".join(host_key_algos[:5])
-        if len(host_key_algos) > 5:
-            algos_str += f" (+{len(host_key_algos) - 5} autres)"
-        table.add_row("Algorithmes de clé", algos_str, EMOJIS["info"])
-    else:
-        table.add_row("Algorithmes de clé", "Aucun", EMOJIS["danger"])
-
-    encryption_algos = ssh.get("encryption_algorithms", [])
-    if encryption_algos:
-        algos_str = ", ".join(encryption_algos[:5])
-        if len(encryption_algos) > 5:
-            algos_str += f" (+{len(encryption_algos) - 5} autres)"
-        table.add_row("Algorithmes de chiffrement", algos_str, EMOJIS["info"])
-    else:
-        table.add_row("Algorithmes de chiffrement", "Aucun", EMOJIS["danger"])
-
-    mac_algos = ssh.get("mac_algorithms", [])
-    if mac_algos:
-        algos_str = ", ".join(mac_algos[:5])
-        if len(mac_algos) > 5:
-            algos_str += f" (+{len(mac_algos) - 5} autres)"
-        table.add_row("Algorithmes MAC", algos_str, EMOJIS["info"])
-    else:
-        table.add_row("Algorithmes MAC", "Aucun", EMOJIS["danger"])
-
-    kex_algos = ssh.get("kex_algorithms", [])
-    if kex_algos:
-        algos_str = ", ".join(kex_algos[:5])
-        if len(kex_algos) > 5:
-            algos_str += f" (+{len(kex_algos) - 5} autres)"
-        table.add_row("Algorithmes KEX", algos_str, EMOJIS["info"])
-    else:
-        table.add_row("Algorithmes KEX", "Aucun", EMOJIS["danger"])
+    _add_list_row(table, "Algorithmes de clé", ssh.get("host_key_algorithms", []))
+    _add_list_row(table, "Algorithmes de chiffrement", ssh.get("encryption_algorithms", []))
+    _add_list_row(table, "Algorithmes MAC", ssh.get("mac_algorithms", []))
+    _add_list_row(table, "Algorithmes KEX", ssh.get("kex_algorithms", []))
 
     quantum_vuln = ssh.get("quantum_vulnerable", [])
     if quantum_vuln:
@@ -314,6 +297,8 @@ def format_recommendations(recommendations: Dict[str, Any]) -> None:
 
 # Affiche le score de robustesse avec une barre de couleur.
 def format_score(score: int) -> None:
+    score = max(0, min(100, int(score)))
+    
     if score >= 80:
         color = COLORS["safe"]
         emoji = EMOJIS["safe"]
@@ -359,11 +344,7 @@ def format_benchmark_results(benchmarks: Dict[str, Any]) -> None:
     table.add_column("Statut", justify="center", width=10)
 
     for name, data in benchmarks.items():
-        algo_type = (
-            "Classique" if name in ["bsgs", "rsa"]
-            else "Quantique" if name in ["grover", "shor"]
-            else "PQC"
-        )
+        algo_type = data.get("type") or BENCH_TYPES.get(name.lower(), "Autre")
         time = data.get("time_seconds", "N/A")
         ops = data.get("ops", data.get("n_iterations", "N/A"))
 
@@ -371,7 +352,7 @@ def format_benchmark_results(benchmarks: Dict[str, Any]) -> None:
             time_str = f"{time:.4f}"
             status = (
                 f"[{COLORS['safe']}]{EMOJIS['safe']} Rapide[/{COLORS['safe']}]"
-                if time < 1
+                if time < FAST_THRESHOLD_S
                 else f"[{COLORS['warning']}]{EMOJIS['warning']} Lent[/{COLORS['warning']}]"
             )
         else:
@@ -423,13 +404,24 @@ def compute_speedup(classical_sec: Optional[float], quantum_sec: Optional[float]
     return classical_sec / quantum_sec
 
 
+# Retourne l'estimation classique à comparer (clé "classique", sinon la première entrée valide).
+def _pick_classical(classical: Dict[str, Any]) -> Dict[str, Any]:
+    entry = classical.get("classique")
+    if isinstance(entry, dict):
+        return entry
+    for data in classical.values():
+        if isinstance(data, dict) and data.get("algo"):
+            return data
+    return {}
+
+
 # Affiche une comparaison complète (tableau + graphique ASCII) entre les temps de cassage classique et quantique.
 def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> None:
     if not classical or not quantum:
         print_warning("Impossible de comparer : données manquantes.")
         return
 
-    c = classical.get("classique", {})
+    c = _pick_classical(classical)
     q = quantum.get("shor_estimate", {})
 
     classical_algo = c.get("algo", "Inconnu")
@@ -621,8 +613,8 @@ def print_summary(results: Dict[str, Any]) -> None:
         plot_benchmark_results(benchmarks)
 
     # 8. Score
-    score = results.get("score", 0)
-    if score:
+    score = results.get("score")
+    if score is not None:
         print_section("📊 Score de Robustesse")
         format_score(score)
 
