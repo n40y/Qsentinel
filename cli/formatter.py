@@ -1,4 +1,6 @@
 # cli/formatter.py
+
+import re
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -10,7 +12,6 @@ from typing import Dict, List, Any, Optional
 from asciichartpy import plot
 import asciichartpy
 import numpy as np
-import re
 
 # --- Couleurs et styles ---
 COLORS = {
@@ -36,14 +37,34 @@ EMOJIS = {
 
 # --- Seuils et classifications ---
 FAST_THRESHOLD_S = 1.0
-QUANTUM_VULNERABLE_KEY_ALGOS = {"RSA", "EC", "DH", "DSA"}
+
+# Préfixes des types de clé vulnérables à Shor (le scanner renvoie par ex. "ECPublicKey").
+QUANTUM_VULNERABLE_KEY_ALGOS = ("RSA", "EC", "ED", "DH", "DSA")
+
+# Versions de protocole considérées comme dépréciées (format normalisé "tls.1.0").
+DEPRECATED_TLS = {"ssl.2.0", "ssl.3.0", "tls.1.0", "tls.1.1"}
+
 BENCH_TYPES = {
-    "bsgs": "Classique", "rsa": "Classique",
-    "grover": "Quantique", "shor": "Quantique",
-    "kyber": "PQC", "dilithium": "PQC",
+    "bsgs": "Classique",
+    "rsa": "Classique",
+    "grover": "Quantique",
+    "shor": "Quantique",
+    "kyber": "PQC",
+    "dilithium": "PQC",
+}
+
+# OID de signature de certificat -> nom lisible.
+CERT_SIG_NAMES = {
+    "1.2.840.10045.4.3.2": "ECDSA-SHA256",
+    "1.2.840.10045.4.3.3": "ECDSA-SHA384",
+    "1.2.840.10045.4.3.4": "ECDSA-SHA512",
+    "1.2.840.113549.1.1.11": "RSA-SHA256",
+    "1.2.840.113549.1.1.12": "RSA-SHA384",
+    "1.2.840.113549.1.1.13": "RSA-SHA512",
 }
 
 console = Console()
+
 
 # --- Fonctions d'affichage de base ---
 def print_title(title: str) -> None:
@@ -67,10 +88,17 @@ def print_warning(message: str) -> None:
     console.print(f"[{COLORS['warning']}]{EMOJIS['warning']} {message}[/{COLORS['warning']}]")
 
 
-# --- Fonctions de formatage des résultats ---
+# --- Fonctions utilitaires ---
 
-# Ajoute une ligne listant jusqu'à max_items éléments.
+# Retourne True si le type de clé (ex. "ECPublicKey", "RSA") est vulnérable à Shor.
+def _is_quantum_vulnerable_key(key_algo: str) -> bool:
+    name = str(key_algo).upper()
+    return any(name.startswith(prefix) for prefix in QUANTUM_VULNERABLE_KEY_ALGOS)
+
+
+# Ajoute une ligne listant jusqu'à max_items éléments (sans doublons).
 def _add_list_row(table: Table, label: str, items: List[str], max_items: int = 5) -> None:
+    items = list(dict.fromkeys(items or []))
     if not items:
         table.add_row(label, "Aucun", EMOJIS["danger"])
         return
@@ -79,6 +107,8 @@ def _add_list_row(table: Table, label: str, items: List[str], max_items: int = 5
         text += f" (+{len(items) - max_items} autres)"
     table.add_row(label, text, EMOJIS["info"])
 
+
+# --- Fonctions de formatage des résultats ---
 
 # Affiche les résultats du scan TLS dans un tableau.
 def format_tls_results(tls: Dict[str, Any]) -> None:
@@ -102,20 +132,27 @@ def format_tls_results(tls: Dict[str, Any]) -> None:
     table.add_row("Hôte", f"{host}:{port}", EMOJIS["info"])
 
     tls_versions = tls.get("tls_versions", [])
+    versions = {v.lower().replace(" ", ".") for v in tls_versions}  # "TLS 1.3" -> "tls.1.3"
+    if versions & DEPRECATED_TLS:
+        versions_status = EMOJIS["warning"]
+    elif "tls.1.3" in versions:
+        versions_status = EMOJIS["safe"]
+    else:
+        versions_status = EMOJIS["warning"]
     table.add_row(
         "Versions TLS",
         ", ".join(tls_versions) if tls_versions else "Aucune",
-        EMOJIS["safe"] if "TLS 1.3" in tls_versions else EMOJIS["warning"],
+        versions_status,
     )
 
     key_algo = tls.get("key_algorithm", "Inconnu")
     key_size = tls.get("key_size", 0)
-    status = EMOJIS["danger"] if key_algo in QUANTUM_VULNERABLE_KEY_ALGOS else EMOJIS["safe"]
+    status = EMOJIS["danger"] if _is_quantum_vulnerable_key(key_algo) else EMOJIS["safe"]
     table.add_row("Algorithme de clé", f"{key_algo} ({key_size} bits)", status)
 
     cert_sig = tls.get("cert_signature", "Inconnu")
-    table.add_row("Signature du certificat", cert_sig, EMOJIS["info"])
-    
+    table.add_row("Signature du certificat", CERT_SIG_NAMES.get(cert_sig, cert_sig), EMOJIS["info"])
+
     _add_list_row(table, "Cipher Suites", tls.get("cipher_suites", []))
 
     quantum_vuln = tls.get("quantum_vulnerable", [])
@@ -134,7 +171,6 @@ def format_tls_results(tls: Dict[str, Any]) -> None:
         )
 
     console.print(table)
-
 
 def format_ssh_results(ssh: Dict[str, Any]) -> None:
     """Affiche les résultats du scan SSH dans un tableau."""
@@ -298,7 +334,7 @@ def format_recommendations(recommendations: Dict[str, Any]) -> None:
 # Affiche le score de robustesse avec une barre de couleur.
 def format_score(score: int) -> None:
     score = max(0, min(100, int(score)))
-    
+
     if score >= 80:
         color = COLORS["safe"]
         emoji = EMOJIS["safe"]
@@ -344,6 +380,9 @@ def format_benchmark_results(benchmarks: Dict[str, Any]) -> None:
     table.add_column("Statut", justify="center", width=10)
 
     for name, data in benchmarks.items():
+        if not isinstance(data, dict):
+            continue
+
         algo_type = data.get("type") or BENCH_TYPES.get(name.lower(), "Autre")
         time = data.get("time_seconds", "N/A")
         ops = data.get("ops", data.get("n_iterations", "N/A"))
@@ -404,15 +443,21 @@ def compute_speedup(classical_sec: Optional[float], quantum_sec: Optional[float]
     return classical_sec / quantum_sec
 
 
-# Retourne l'estimation classique à comparer (clé "classique", sinon la première entrée valide).
+# Choisit l'estimation classique à comparer : la clé "classique" si son temps est exploitable,
+# sinon la première entrée dont le temps est exploitable.
 def _pick_classical(classical: Dict[str, Any]) -> Dict[str, Any]:
-    entry = classical.get("classique")
-    if isinstance(entry, dict):
-        return entry
-    for data in classical.values():
-        if isinstance(data, dict) and data.get("algo"):
-            return data
-    return {}
+    candidates = []
+    preferred = classical.get("classique")
+    if isinstance(preferred, dict):
+        candidates.append(preferred)
+    candidates += [
+        d for k, d in classical.items()
+        if k != "classique" and isinstance(d, dict) and d.get("algo")
+    ]
+    for entry in candidates:
+        if time_to_seconds(entry.get("temps_classique", "N/A")) is not None:
+            return entry
+    return candidates[0] if candidates else {}
 
 
 # Affiche une comparaison complète (tableau + graphique ASCII) entre les temps de cassage classique et quantique.
@@ -482,57 +527,6 @@ def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> Non
             console.print(f"[bold]Accélération:[/bold] [cyan]{speedup:,.0f}x plus rapide[/cyan]")
     else:
         print_warning("Graphique impossible : temps non exploitables.")
-
-
-    # Convertit une chaîne de temps en secondes (version robuste).
-    def time_to_seconds(time_str: str) -> float:
-        if not time_str or time_str == "N/A":
-            return 1.0
-        time_str = time_str.lower().strip()
-        if "milliards d'années" in time_str or "milliard d'années" in time_str:
-            return float(time_str.split()[0]) * 3.15e16
-        elif "ans" in time_str:
-            return float(time_str.split()[0]) * 3.15e7
-        elif "jours" in time_str:
-            return float(time_str.split()[0]) * 86400
-        elif "heures" in time_str:
-            return float(time_str.split()[0]) * 3600
-        elif "minutes" in time_str:
-            return float(time_str.split()[0]) * 60
-        elif "secondes" in time_str:
-            return float(time_str.split()[0])
-        elif "e+" in time_str:
-            return float(time_str.split()[0])
-        else:
-            try:
-                return float(time_str.split()[0])
-            except (ValueError, IndexError):
-                return 1.0
-
-    classical_sec = time_to_seconds(classical_time_str)
-    quantum_sec = time_to_seconds(quantum_time_str)
-
-    if classical_sec > 0 and quantum_sec > 0:
-        log_classical = np.log10(classical_sec)
-        log_quantum = np.log10(quantum_sec)
-
-    data = [
-        [log_classical, log_classical],
-        [log_quantum, log_quantum],
-    ]
-    config = {
-        "height": 10,
-        "colors": [asciichartpy.red, asciichartpy.green],
-    }
-
-    console.print(f"\n[bold]📈 Comparaison {classical_algo} (échelle log10)[/bold]")
-    console.print(plot(data, config))
-    console.print(
-        f"[red]Classique:[/red] {classical_time_str} | "
-        f"[green]Quantique:[/green] {quantum_time_str}"
-    )
-    speedup = classical_sec / quantum_sec
-    console.print(f"[bold]Accélération:[/bold] [cyan]{speedup:.0f}x plus rapide[/cyan]")
 
 
 # Affiche un graphique ASCII des résultats des benchmarks.
@@ -612,7 +606,7 @@ def print_summary(results: Dict[str, Any]) -> None:
         format_benchmark_results(benchmarks)
         plot_benchmark_results(benchmarks)
 
-    # 8. Score
+    # 8. Score (un score de 0 doit aussi s'afficher)
     score = results.get("score")
     if score is not None:
         print_section("📊 Score de Robustesse")
