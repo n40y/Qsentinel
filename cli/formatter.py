@@ -6,10 +6,11 @@ from rich.text import Text
 from rich.layout import Layout
 from rich.columns import Columns
 from rich import box
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from asciichartpy import plot
 import asciichartpy
 import numpy as np
+import re
 
 # --- Couleurs et styles ---
 COLORS = {
@@ -388,17 +389,64 @@ def format_benchmark_results(benchmarks: Dict[str, Any]) -> None:
     console.print(table)
 
 
+# Unités de temps (les plus grandes d'abord, "milliard" doit passer avant "année")
+_TIME_UNITS = [
+    (r"milliards?", 3.15e16),
+    (r"millions?", 3.15e13),
+    (r"\bans?\b|ann[ée]es?", 3.15e7),
+    (r"jours?", 86400),
+    (r"heures?", 3600),
+    (r"minutes?", 60),
+    (r"secondes?", 1),
+]
+
+
+# Convertit une chaîne de temps en secondes. Retourne None si non exploitable.
+def time_to_seconds(time_str: str) -> Optional[float]:
+    if not time_str or time_str == "N/A":
+        return None
+    s = time_str.lower().strip()
+    m = re.search(r"[-+]?\d+(?:[.,]\d+)?(?:e[+-]?\d+)?", s)
+    if not m:
+        return None
+    value = float(m.group().replace(",", "."))
+    for pattern, factor in _TIME_UNITS:
+        if re.search(pattern, s):
+            return value * factor
+    return value  # nombre brut, supposé en secondes
+
+
+# Calcule le rapport classique / quantique. Retourne None si impossible.
+def compute_speedup(classical_sec: Optional[float], quantum_sec: Optional[float]) -> Optional[float]:
+    if not classical_sec or not quantum_sec or quantum_sec <= 0:
+        return None
+    return classical_sec / quantum_sec
+
+
 # Affiche une comparaison complète (tableau + graphique ASCII) entre les temps de cassage classique et quantique.
 def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> None:
     if not classical or not quantum:
         print_warning("Impossible de comparer : données manquantes.")
         return
 
-    # 1. Tableau de comparaison
-    classical_algo = classical.get("classique", {}).get("algo", "Inconnu")
-    classical_time = classical.get("classique", {}).get("temps_classique", "N/A")
-    quantum_time = quantum.get("shor_estimate", {}).get("time_readable", "N/A")
+    c = classical.get("classique", {})
+    q = quantum.get("shor_estimate", {})
 
+    classical_algo = c.get("algo", "Inconnu")
+    classical_time_str = c.get("temps_classique", "N/A")
+    quantum_time_str = q.get("time_readable", "N/A")
+
+    classical_sec = time_to_seconds(classical_time_str)
+    quantum_sec = time_to_seconds(quantum_time_str)
+    speedup = compute_speedup(classical_sec, quantum_sec)
+
+    speedup_cell = (
+        f"[{COLORS['info']}]{EMOJIS['time']} ~{speedup:,.0f}x plus rapide[/{COLORS['info']}]"
+        if speedup
+        else "[white]N/A[/white]"
+    )
+
+    # 1. Tableau de comparaison
     table = Table(
         title="[bold]Comparaison Classique vs Quantique[/bold]",
         box=box.ROUNDED,
@@ -411,29 +459,37 @@ def format_comparison(classical: Dict[str, Any], quantum: Dict[str, Any]) -> Non
     table.add_column(f"{EMOJIS['quantum']} Quantique", justify="center", width=30)
     table.add_column("Accélération", justify="center", width=20)
 
-    table.add_row(
-        "Algorithme",
-        classical_algo,
-        quantum.get("shor_estimate", {}).get("algo", "Inconnu"),
-        "-",
-    )
+    table.add_row("Algorithme", classical_algo, q.get("algo", "Inconnu"), "-")
     table.add_row(
         "Taille de clé",
-        f"{classical.get('classique', {}).get('key_size', 0)} bits",
-        f"{quantum.get('shor_estimate', {}).get('key_size', 0)} bits",
+        f"{c.get('key_size', 0)} bits",
+        f"{q.get('key_size', 0)} bits",
         "-",
     )
-    table.add_row(
-        "Temps estimé",
-        classical_time,
-        quantum_time,
-        f"[{COLORS['info']}]{EMOJIS['time']} ~1000x plus rapide[/{COLORS['info']}]",
-    )
+    table.add_row("Temps estimé", classical_time_str, quantum_time_str, speedup_cell)
     console.print(table)
 
     # 2. Graphique ASCII avec asciichartpy
-    classical_time_str = classical.get("classique", {}).get("temps_classique", "0 secondes")
-    quantum_time_str = quantum.get("shor_estimate", {}).get("time_readable", "0 secondes")
+    if classical_sec and quantum_sec:
+        data = [
+            [np.log10(classical_sec)] * 2,
+            [np.log10(quantum_sec)] * 2,
+        ]
+        config = {
+            "height": 10,
+            "colors": [asciichartpy.red, asciichartpy.green],
+        }
+
+        console.print(f"\n[bold]📈 Comparaison {classical_algo} (échelle log10)[/bold]")
+        console.print(plot(data, config))
+        console.print(
+            f"[red]Classique:[/red] {classical_time_str} | "
+            f"[green]Quantique:[/green] {quantum_time_str}"
+        )
+        if speedup:
+            console.print(f"[bold]Accélération:[/bold] [cyan]{speedup:,.0f}x plus rapide[/cyan]")
+    else:
+        print_warning("Graphique impossible : temps non exploitables.")
 
 
     # Convertit une chaîne de temps en secondes (version robuste).
